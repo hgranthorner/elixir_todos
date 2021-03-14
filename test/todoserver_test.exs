@@ -1,36 +1,30 @@
-defmodule TodoServerTest do
+defmodule Todo.AgentTest do
 	use ExUnit.Case, async: true
-	doctest Todo.Server
-	alias Todo.Server
+	doctest Todo.Agent
 
 	setup do
-		pid = start_supervised!(Server)
+		pid = start_supervised!(Todo.Agent)
 		[pid: pid]
 	end
 
-	test "can call", %{pid: p} do
-		res = Server.call(p)
-		assert res == :my_reply
-	end
-
-	test "can cast", %{pid: p} do
-		Server.cast(p)
-		assert :ok == :ok
-	end
-
 	test "can create a todo", %{pid: p} do
-		todos = Server.create(p, "my title", "my description")
-		[todo] = todos
-		assert length(todos) == 1
-		assert Server.todo(todo, :title) == "my title"
-		assert Server.todo(todo, :description) == "my description"
+		todo = Todo.Agent.upsert(p, "my title", "my description") |> IO.inspect()
+		todos = Todo.Agent.get_todos(p)
+		assert length(Map.keys(todos)) == 1
+		assert Todo.Agent.todo(todo, :title) == "my title"
+		assert Todo.Agent.todo(todo, :description) == "my description"
 	end
 
 	test "can create another todo without sharing state", %{pid: p} do
-		todos = Server.create(p, "my title", "my description")
-		[todo] = todos
-		assert length(todos) == 1
-		assert Server.todo(todo, :title) == "my title"
-		assert Server.todo(todo, :description) == "my description"
+		todo = Todo.Agent.upsert(p, "my title", "my description")
+		todos = Todo.Agent.get_todos(p)
+		assert length(Map.keys(todos)) == 1
+		assert Todo.Agent.todo(todo, :title) == "my title"
+		assert Todo.Agent.todo(todo, :description) == "my description"
+	end
+
+	test "can get all todos", %{pid: p} do
+		todo = Todo.Agent.upsert(p, "my title", "my description")
+		assert Todo.Agent.get_todos(p) == %{Todo.Agent.todo(todo, :id) => todo}
 	end
 end
